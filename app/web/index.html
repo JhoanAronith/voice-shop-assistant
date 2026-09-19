@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asistente de compras</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <aside id="sidebar">
+    <button id="new-chat" class="ghost block">Nueva conversación</button>
+    <p class="label">Conversaciones</p>
+    <nav id="conversations"></nav>
+    <div class="sidebar-foot">
+      <a class="icon" href="/report" title="Panel de conversaciones" aria-label="Panel de conversaciones">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M4 20h16M7 20V11m5 9V5m5 15v-6"/>
+        </svg>
+      </a>
+      <button id="theme-toggle" class="icon" title="Cambiar tema" aria-label="Cambiar tema">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path class="sun" d="M12 4V2m0 20v-2m8-8h2M2 12h2m13.66-5.66 1.41-1.41M4.93 19.07l1.41-1.41m11.32 0 1.41 1.41M4.93 4.93l1.41 1.41"/>
+          <circle class="sun" cx="12" cy="12" r="4"/>
+          <path class="moon" d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <button id="menu" class="icon only-narrow" aria-label="Conversaciones">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <h1 id="store">Asistente</h1>
+      <span class="subtitle">Asistente de compras</span>
+    </header>
+
+    <section id="thread">
+      <div id="empty" class="empty">
+        <p>Escribe tu consulta o graba un audio.</p>
+      </div>
+    </section>
+
+    <form id="composer">
+      <textarea id="input" rows="1" placeholder="Escribe tu consulta" autocomplete="off"></textarea>
+      <button type="submit" id="send" class="round" aria-label="Enviar">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+      </button>
+      <button type="button" id="mic" class="round" aria-label="Grabar audio">
+        <svg viewBox="0 0 24 24" width="18" height="18">
+          <path d="M12 4a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V7a3 3 0 0 1 3-3Z"/>
+          <path d="M6 11a6 6 0 0 0 12 0M12 17v4"/>
+        </svg>
+        <span id="timer"></span>
+      </button>
+    </form>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

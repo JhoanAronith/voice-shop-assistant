@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel de conversaciones</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/report.css">
+</head>
+<body>
+  <header id="top">
+    <div class="titles">
+      <h1>Panel de conversaciones</h1>
+      <p id="store" class="subtitle"></p>
+    </div>
+    <div class="actions">
+      <div id="range" class="segmented" role="group" aria-label="Rango">
+        <button data-days="7">7 d</button>
+        <button data-days="14" class="on">14 d</button>
+        <button data-days="30">30 d</button>
+      </div>
+      <a class="ghost" href="/">Volver al chat</a>
+      <button id="theme-toggle" class="icon" title="Cambiar tema" aria-label="Cambiar tema">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path class="sun" d="M12 4V2m0 20v-2m8-8h2M2 12h2m13.66-5.66 1.41-1.41M4.93 19.07l1.41-1.41m11.32 0 1.41 1.41M4.93 4.93l1.41 1.41"/>
+          <circle class="sun" cx="12" cy="12" r="4"/>
+          <path class="moon" d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section id="kpis" class="kpis"></section>
+
+    <section class="grid">
+      <article class="card span-2">
+        <div class="card-head">
+          <h2>Objetivo de la conversación</h2>
+          <span class="note">clasificado por el modelo</span>
+        </div>
+        <div id="categories"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>Canal de entrada</h2>
+          <span class="note">mensajes del cliente</span>
+        </div>
+        <div id="channel" class="channel"></div>
+      </article>
+
+      <article class="card span-2">
+        <div class="card-head">
+          <h2>Actividad</h2>
+          <span class="note" id="activity-note"></span>
+        </div>
+        <div id="activity"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>Franja horaria</h2>
+          <span class="note">UTC</span>
+        </div>
+        <div id="hours"></div>
+      </article>
+
+      <article class="card span-2">
+        <div class="card-head">
+          <h2>Interés por producto</h2>
+          <span class="note">menciones en consultas</span>
+        </div>
+        <div id="products"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>Inventario</h2>
+          <span class="note" id="inventory-note"></span>
+        </div>
+        <div id="inventory"></div>
+      </article>
+
+      <article class="card span-3">
+        <div class="card-head">
+          <h2>Últimas conversaciones</h2>
+        </div>
+        <div id="recent" class="table-wrap"></div>
+      </article>
+    </section>
+  </main>
+
+  <script src="/report.js"></script>
+</body>
+</html>
