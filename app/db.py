@@ -136,6 +136,30 @@ def delete_conversation(conversation_id: int) -> None:
 NON_EMPTY = "EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id)"
 
 
+def report(days: int = 30) -> list[dict]:
+    """One row per conversation for the external report: volume, audio, latency and last message."""
+    with connect() as conn:
+        rows = conn.execute(
+            f"""SELECT c.id,
+                       c.started_at,
+                       c.category,
+                       (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id)       AS messages,
+                       (SELECT COUNT(*) FROM messages m
+                         WHERE m.conversation_id = c.id AND m.source = 'audio')                AS audio_messages,
+                       (SELECT AVG(m.latency_ms) FROM messages m
+                         WHERE m.conversation_id = c.id AND m.latency_ms > 0)                  AS avg_latency_ms,
+                       (SELECT m.content FROM messages m
+                         WHERE m.conversation_id = c.id ORDER BY m.id DESC LIMIT 1)            AS last_message,
+                       (SELECT m.created_at FROM messages m
+                         WHERE m.conversation_id = c.id ORDER BY m.id DESC LIMIT 1)            AS last_message_at
+                FROM conversations c
+                WHERE {NON_EMPTY} AND date(c.started_at) >= date('now', ?)
+                ORDER BY c.started_at""",
+            (f"-{max(days - 1, 0)} days",),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def stats(days: int = 14) -> dict:
     """Aggregates for the dashboard: totals, categories, activity and history."""
     with connect() as conn:

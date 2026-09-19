@@ -42,6 +42,31 @@ services:
       - whisper:/models
     restart: unless-stopped
 
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION:-latest}
+    ports:
+      - "5678:5678"
+    environment:
+      GENERIC_TIMEZONE: ${TZ:-America/Lima}
+      TZ: ${TZ:-America/Lima}
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+      N8N_SECURE_COOKIE: "false"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_RUNNERS_ENABLED: "true"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
   tests:
     build: .
     profiles: ["test"]
@@ -56,3 +81,4 @@ services:
 volumes:
   ollama:
   whisper:
+  n8n_data:

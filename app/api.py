@@ -201,6 +201,24 @@ def read_stats(days: int = 14) -> dict:
     }
 
 
+@app.get("/api/report")
+def read_report(days: int = 30) -> list[dict]:
+    """Flat rows for spreadsheets and automations: one conversation per row."""
+    return [
+        {
+            "conversation_id": row["id"],
+            "started_at": row["started_at"],
+            "category": CATEGORIES.get(row["category"], row["category"]),
+            "messages": row["messages"],
+            "audio_messages": row["audio_messages"],
+            "avg_response_seconds": round((row["avg_latency_ms"] or 0) / 1000, 1),
+            "last_message": row["last_message"] or "",
+            "last_message_at": row["last_message_at"],
+        }
+        for row in db.report(days=min(max(days, 1), 365))
+    ]
+
+
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(WEB_DIR / "index.html")

@@ -109,6 +109,25 @@ def test_stats_reflect_chat_activity(client, fake_llm):
     assert "user_texts" not in stats
 
 
+def test_report_rows_are_flat_for_spreadsheets(client, fake_llm):
+    send(client, "precio del mouse", source="audio", audio_seconds=30)
+    [row] = client.get("/api/report").json()
+
+    assert row["messages"] == 2
+    assert row["audio_messages"] == 1
+    assert row["category"] == "Precio y ofertas"
+    assert row["last_message"] == "El mouse cuesta S/ 149."
+    assert row["last_message_at"] >= row["started_at"]
+    assert isinstance(row["avg_response_seconds"], float)
+    assert all(not isinstance(value, dict | list) for value in row.values())
+
+
+def test_report_days_are_clamped(client, fake_llm):
+    send(client, "hola")
+    assert len(client.get("/api/report?days=0").json()) == 1
+    assert len(client.get("/api/report?days=9999").json()) == 1
+
+
 def test_transcribe(client, monkeypatch):
     seen = {}
 

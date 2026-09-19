@@ -16,6 +16,21 @@ Abrir http://localhost:8000 para el chat y http://localhost:8000/report para el 
 La primera vez se descargan el modelo de lenguaje (~1 GB) y el modelo
 Whisper (~75 MB para `base`); quedan en volúmenes de Docker y no se repiten.
 
+## Automatizaciones (n8n)
+
+`docker compose up` también levanta n8n en http://localhost:5678. La primera vez pide crear la cuenta
+de propietario (es local). Los flujos y credenciales se guardan en el volumen `n8n_data`.
+
+Desde los nodos HTTP Request de n8n, los otros servicios se alcanzan por su nombre en la red de Docker:
+
+| Servicio | URL desde n8n |
+|---|---|
+| API del asistente | `http://app:8000/api/...` (ej. `/api/report`, `/api/stats`) |
+| Ollama | `http://ollama:11434` |
+
+Los webhooks quedan en `http://localhost:5678/webhook/...`. Solo para levantar n8n:
+`docker compose up -d n8n`.
+
 ## Pruebas
 
 ```bash
@@ -65,6 +80,7 @@ Variables (ver `.env.example`, copiar a `.env` para sobreescribir):
 | `POST` | `/api/transcribe` | `multipart/form-data` con campo `audio` → `{text, language, duration}` |
 | `POST` | `/api/chat` | Respuesta en server-sent events: `start`, `token`, `done` (o `error`) |
 | `GET` | `/api/stats?days=N` | Agregados del panel (rango de 1 a 90 días) |
+| `GET` | `/api/report?days=N` | Una fila plana por conversación para hojas de cálculo (rango de 1 a 365 días) |
 | `POST` | `/api/speak` | `{"text"}` → clip WAV generado offline por Piper |
 
 ## Panel (`/report`)

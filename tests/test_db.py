@@ -30,6 +30,35 @@ def test_prune_and_delete(temp_db):
     assert temp_db.history(full) == []  # messages go with it (ON DELETE CASCADE)
 
 
+def test_report_rows(temp_db):
+    cid = temp_db.start_conversation("web")
+    temp_db.add_message(cid, "user", "precio del mouse", source="audio", audio_seconds=4)
+    temp_db.add_message(cid, "assistant", "S/ 149", latency_ms=1000)
+    temp_db.add_message(cid, "user", "gracias")
+    temp_db.add_message(cid, "assistant", "a ti", latency_ms=3000)
+    temp_db.start_conversation("web")
+
+    [row] = temp_db.report(days=30)
+    assert row["id"] == cid
+    assert row["messages"] == 4
+    assert row["audio_messages"] == 1
+    assert row["avg_latency_ms"] == 2000
+    assert row["last_message"] == "a ti"
+    assert row["last_message_at"] >= row["started_at"]
+
+
+def test_report_ignores_older_conversations(temp_db):
+    cid = temp_db.start_conversation("web")
+    temp_db.add_message(cid, "user", "hola")
+    with temp_db.connect() as conn:
+        conn.execute(
+            "UPDATE conversations SET started_at = datetime('now', '-10 days') WHERE id = ?", (cid,)
+        )
+
+    assert temp_db.report(days=7) == []
+    assert len(temp_db.report(days=30)) == 1
+
+
 def test_stats_aggregates(temp_db):
     a = temp_db.start_conversation("web")
     temp_db.add_message(a, "user", "precio del mouse", source="audio", audio_seconds=6)
