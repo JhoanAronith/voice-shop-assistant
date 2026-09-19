@@ -1,7 +1,7 @@
 """SQLite persistence for conversations and messages."""
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from config import DB_PATH
@@ -35,7 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_conversations_session ON conversations(session_id
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 @contextmanager

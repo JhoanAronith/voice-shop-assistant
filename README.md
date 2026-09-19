@@ -1,5 +1,7 @@
 # Asistente de voz — tienda de tecnología
 
+[![CI](https://github.com/JhoanAronith/voice-shop-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/JhoanAronith/voice-shop-assistant/actions/workflows/ci.yml)
+
 FastAPI + faster-whisper (STT) + Ollama (LLM) + SQLite, con frontend propio en HTML/CSS/JS sin
 build step. El usuario graba un audio, el backend lo transcribe, responde en streaming con datos del
 catálogo y guarda la conversación clasificada por categoría.
@@ -23,6 +25,19 @@ docker compose --profile test run --rm tests
 Corre `pytest` sobre `tests/` en la imagen de la app, con una SQLite temporal por prueba y Ollama,
 Whisper y Piper simulados (no hace falta tener los modelos). Unitarias: `test_catalog`, `test_llm`,
 `test_db`, `test_tts`. Funcionales (endpoints HTTP de punta a punta): `test_api`.
+
+## Integración continua
+
+`.github/workflows/ci.yml` corre en cada push a `master`, en cada pull request y a mano desde la
+pestaña Actions:
+
+| Job | Qué valida |
+|---|---|
+| Lint | `ruff check` (reglas en `ruff.toml`), sintaxis de `app/web/*.js` y que `docker-compose.yml` sea válido |
+| Pruebas | `pytest tests` en Python 3.11 con las dependencias de `requirements.txt` |
+| Imagen Docker | Construye la imagen y la arranca: `/api/health`, `/`, `/report` y `/api/stats` deben responder |
+
+La imagen no se publica en ningún registro; el despliegue continuo queda para cuando haya servidor.
 
 ## Configuración
 

@@ -50,7 +50,7 @@ PRODUCTS = [
 
 FIELDS = ("sku", "nombre", "categoria", "marca", "precio", "stock", "garantia", "rating", "terminos")
 
-CATALOG = [dict(zip(FIELDS, product)) for product in PRODUCTS]
+CATALOG = [dict(zip(FIELDS, product, strict=True)) for product in PRODUCTS]
 
 STORE = {
     "sucursales": [
