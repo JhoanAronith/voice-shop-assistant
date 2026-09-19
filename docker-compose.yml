@@ -42,6 +42,17 @@ services:
       - whisper:/models
     restart: unless-stopped
 
+  tests:
+    build: .
+    profiles: ["test"]
+    environment:
+      TTS_ENABLED: "0"
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./app:/app
+      - ./tests:/tests
+    command: sh -c "pip install -q -r /tests/requirements.txt && pytest /tests -q -p no:cacheprovider"
+
 volumes:
   ollama:
   whisper:

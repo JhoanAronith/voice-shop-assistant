@@ -85,8 +85,10 @@ def classify(history: list[dict]) -> dict:
             timeout=60,
         )
         match = re.search(r"\{.*\}", raw, re.S)
-        data = json.loads(match.group(0)) if match else {}
-        category = data.get("category", "otro")
+        if not match:
+            raise ValueError("respuesta sin JSON")
+        data = json.loads(match.group(0))
+        category = data.get("category")
         if category not in CATEGORIES:
             raise ValueError(category)
         return {

@@ -60,6 +60,30 @@ body {
 }
 .conv small { color: var(--muted); font-size: .72rem; }
 
+.conv-row { position: relative; }
+.conv-row .conv { padding-right: 2.1rem; }
+.conv-delete {
+  position: absolute;
+  top: 50%;
+  right: .35rem;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+}
+.conv-row:hover .conv-delete,
+.conv-row:focus-within .conv-delete { opacity: 1; }
+.conv-delete:hover { background: var(--panel); color: var(--danger); }
+.conv-delete:focus-visible { opacity: 1; outline: 2px solid var(--accent); }
+@media (hover: none) { .conv-delete { opacity: 1; } }
+
 .sidebar-foot { display: flex; align-items: center; justify-content: flex-end; gap: .25rem; padding-top: .5rem; border-top: 1px solid var(--line); }
 
 

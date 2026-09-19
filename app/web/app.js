@@ -15,8 +15,6 @@ let ttsEnabled = false;
 let player = null;
 let playing = null;
 
-/* ---------- theme ---------- */
-
 document.documentElement.dataset.theme = localStorage.getItem("theme") || "auto";
 
 el("theme-toggle").onclick = () => {
@@ -31,8 +29,6 @@ el("theme-toggle").onclick = () => {
 
 el("menu").onclick = () => el("sidebar").classList.toggle("open");
 
-/* ---------- rendering ---------- */
-
 const ENTITIES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 const escape = (text) => text.replace(/[&<>"']/g, (c) => ENTITIES[c]);
 
@@ -41,7 +37,6 @@ const inline = (text) =>
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|\s)\*(?!\s)(.+?)\*/g, "$1<em>$2</em>");
 
-/** Minimal markdown: paragraphs, bullet lists, bold and italic. */
 function format(text) {
   return escape(text || "")
     .trim()
@@ -75,8 +70,6 @@ function addMessage(role, text, meta) {
   return bubble;
 }
 
-/* ---------- speech ---------- */
-
 const SPEAKER_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
   <path d="M4 10v4h3l4 3V7L7 10H4Z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>`;
 const STOP_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
@@ -92,7 +85,6 @@ function stopPlayback() {
   }
 }
 
-/** Speaker button that plays the answer with the offline Piper voice. */
 function addSpeakButton(bubble, text) {
   if (!ttsEnabled || !text.trim()) return;
 
@@ -156,19 +148,52 @@ function toast(text) {
   setTimeout(() => node.remove(), 3200);
 }
 
-/* ---------- conversations ---------- */
-
 async function loadConversations() {
   const conversations = await fetch("/api/conversations").then((r) => r.json());
   list.innerHTML = "";
   conversations.forEach((conversation) => {
+    const row = document.createElement("div");
+    row.className = "conv-row";
+
     const button = document.createElement("button");
     button.className = "conv" + (conversation.id === conversationId ? " active" : "");
     button.innerHTML =
       `<b>${escape(conversation.title)}</b><small>${escape(conversation.category_label)}</small>`;
     button.onclick = () => openConversation(conversation.id);
-    list.append(button);
+
+    const remove = document.createElement("button");
+    remove.className = "conv-delete";
+    remove.title = "Eliminar conversación";
+    remove.setAttribute("aria-label", `Eliminar conversación: ${conversation.title}`);
+    remove.innerHTML = TRASH_ICON;
+    remove.onclick = () => deleteConversation(conversation.id, conversation.title);
+
+    row.append(button, remove);
+    list.append(row);
   });
+}
+
+const TRASH_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>`;
+
+async function deleteConversation(id, title) {
+  if (busy && id === conversationId) {
+    toast("Espera a que termine la respuesta");
+    return;
+  }
+  if (!confirm(`¿Eliminar la conversación "${title}"?`)) return;
+
+  try {
+    const response = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  } catch {
+    toast("No se pudo eliminar la conversación");
+    return;
+  }
+
+  if (id === conversationId) resetChat();
+  else loadConversations();
+  toast("Conversación eliminada");
 }
 
 async function openConversation(id) {
@@ -188,16 +213,16 @@ async function openConversation(id) {
   loadConversations();
 }
 
-el("new-chat").onclick = () => {
+function resetChat() {
   conversationId = null;
   stopPlayback();
   thread.innerHTML =
     '<div id="empty" class="empty"><p>Escribe tu consulta o graba un audio.</p></div>';
   loadConversations();
   input.focus();
-};
+}
 
-/* ---------- chat ---------- */
+el("new-chat").onclick = resetChat;
 
 function setBusy(value) {
   busy = value;
@@ -205,7 +230,6 @@ function setBusy(value) {
   micButton.disabled = value;
 }
 
-/** Parse a server-sent-events body into {event, data} objects. */
 async function* readEvents(response) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -269,8 +293,6 @@ async function send(text, source = "text", language = null, seconds = null) {
   }
 }
 
-/* ---------- composer ---------- */
-
 el("composer").onsubmit = (event) => {
   event.preventDefault();
   const text = input.value.trim();
@@ -290,8 +312,6 @@ input.addEventListener("keydown", (event) => {
     el("composer").requestSubmit();
   }
 });
-
-/* ---------- recording ---------- */
 
 const MIME = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find(
   (type) => window.MediaRecorder && MediaRecorder.isTypeSupported(type)
@@ -370,8 +390,6 @@ micButton.onclick = async () => {
   micButton.classList.add("recording");
   startTimer();
 };
-
-/* ---------- boot ---------- */
 
 fetch("/api/config")
   .then((r) => r.json())

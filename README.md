@@ -14,6 +14,16 @@ Abrir http://localhost:8000 para el chat y http://localhost:8000/report para el 
 La primera vez se descargan el modelo de lenguaje (~1 GB) y el modelo
 Whisper (~75 MB para `base`); quedan en volúmenes de Docker y no se repiten.
 
+## Pruebas
+
+```bash
+docker compose --profile test run --rm tests
+```
+
+Corre `pytest` sobre `tests/` en la imagen de la app, con una SQLite temporal por prueba y Ollama,
+Whisper y Piper simulados (no hace falta tener los modelos). Unitarias: `test_catalog`, `test_llm`,
+`test_db`, `test_tts`. Funcionales (endpoints HTTP de punta a punta): `test_api`.
+
 ## Configuración
 
 Variables (ver `.env.example`, copiar a `.env` para sobreescribir):

@@ -1,6 +1,7 @@
 """HTTP API for the voice assistant: transcription, streaming answers, history, stats."""
 import json
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -17,13 +18,14 @@ from config import CATEGORIES, STORE_NAME
 
 WEB_DIR = Path(__file__).with_name("web")
 
-app = FastAPI(title=f"{STORE_NAME} · Asistente", docs_url=None, redoc_url=None)
-
-
-@app.on_event("startup")
-def _startup() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     db.init()
     db.prune_empty()
+    yield
+
+
+app = FastAPI(title=f"{STORE_NAME} · Asistente", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 
 class ChatRequest(BaseModel):

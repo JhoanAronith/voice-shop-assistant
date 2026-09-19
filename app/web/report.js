@@ -5,8 +5,6 @@ const number = (value) => new Intl.NumberFormat("es-PE").format(value ?? 0);
 
 let days = 14;
 
-/* ---------- theme ---------- */
-
 document.documentElement.dataset.theme = localStorage.getItem("theme") || "auto";
 
 el("theme-toggle").onclick = () => {
@@ -18,8 +16,6 @@ el("theme-toggle").onclick = () => {
   document.documentElement.dataset.theme = next;
   localStorage.setItem("theme", next);
 };
-
-/* ---------- KPIs ---------- */
 
 function renderKpis(totals) {
   const tiles = [
@@ -39,8 +35,6 @@ function renderKpis(totals) {
     .join("");
 }
 
-/* ---------- horizontal bars ---------- */
-
 function bars(node, rows, { empty }) {
   if (!rows.length) {
     node.innerHTML = `<p class="empty">${escape(empty)}</p>`;
@@ -58,8 +52,6 @@ function bars(node, rows, { empty }) {
     )
     .join("");
 }
-
-/* ---------- channel donut ---------- */
 
 function renderChannel(sources) {
   const audio = sources.audio || 0;
@@ -91,8 +83,6 @@ function renderChannel(sources) {
       <small>${number(total)} consultas en total</small>
     </div>`;
 }
-
-/* ---------- activity chart ---------- */
 
 function renderActivity(daily) {
   const node = el("activity");
@@ -132,8 +122,6 @@ function renderActivity(daily) {
     </svg>`;
 }
 
-/* ---------- hour chart ---------- */
-
 function renderHours(hourly) {
   const node = el("hours");
   const max = Math.max(...hourly.map((h) => h.total), 0);
@@ -171,8 +159,6 @@ function renderHours(hourly) {
     <p class="note">Hora más activa: ${peak.hour}:00 (${peak.total} mensajes)</p>`;
 }
 
-/* ---------- inventory ---------- */
-
 function renderInventory(inventory) {
   el("inventory-note").textContent =
     `${inventory.products} SKU · ${inventory.categories} categorías · ${number(inventory.units)} unidades`;
@@ -196,8 +182,6 @@ function renderInventory(inventory) {
       )
       .join("");
 }
-
-/* ---------- recent table ---------- */
 
 function renderRecent(rows) {
   const node = el("recent");
@@ -229,8 +213,6 @@ function renderRecent(rows) {
       <tbody>${body}</tbody>
     </table>`;
 }
-
-/* ---------- load ---------- */
 
 async function load() {
   const stats = await fetch(`/api/stats?days=${days}`).then((r) => r.json());
