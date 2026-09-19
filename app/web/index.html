@@ -58,6 +58,22 @@
     </form>
   </main>
 
+  <dialog id="confirm" class="modal" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+    <form method="dialog">
+      <div class="modal-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22">
+          <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>
+        </svg>
+      </div>
+      <h2 id="confirm-title">¿Eliminar conversación?</h2>
+      <p id="confirm-text"></p>
+      <div class="modal-actions">
+        <button value="cancel" class="ghost" autofocus>Cancelar</button>
+        <button value="ok" class="danger">Eliminar</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="/app.js"></script>
 </body>
 </html>

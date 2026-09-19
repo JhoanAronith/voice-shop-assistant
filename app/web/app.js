@@ -176,12 +176,30 @@ async function loadConversations() {
 const TRASH_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
   <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>`;
 
+const confirmDialog = el("confirm");
+
+confirmDialog.addEventListener("click", (event) => {
+  if (event.target === confirmDialog) confirmDialog.close("cancel");
+});
+
+function confirmDelete(title) {
+  el("confirm-text").innerHTML =
+    `Se borrará <strong>${escape(title)}</strong> con todos sus mensajes. Esta acción no se puede deshacer.`;
+  confirmDialog.returnValue = "cancel";
+  confirmDialog.showModal();
+  return new Promise((resolve) => {
+    confirmDialog.addEventListener("close", () => resolve(confirmDialog.returnValue === "ok"), {
+      once: true,
+    });
+  });
+}
+
 async function deleteConversation(id, title) {
   if (busy && id === conversationId) {
     toast("Espera a que termine la respuesta");
     return;
   }
-  if (!confirm(`¿Eliminar la conversación "${title}"?`)) return;
+  if (!(await confirmDelete(title))) return;
 
   try {
     const response = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
