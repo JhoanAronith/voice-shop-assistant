@@ -2,6 +2,7 @@
 import json
 import time
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -12,11 +13,13 @@ from pydantic import BaseModel
 import catalog
 import db
 import llm
+import notify
 import stt
 import tts
 from config import CATEGORIES, STORE_NAME
 
 WEB_DIR = Path(__file__).with_name("web")
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -100,6 +103,20 @@ async def transcribe(audio: UploadFile = File(...)) -> dict:
     return stt.transcribe(payload, suffix=suffix)
 
 
+def alert_payload(conversation_id: int, result: dict, transcript: list[dict]) -> dict:
+    """What the automation receives: enough context to triage without opening the panel."""
+    return {
+        "store": STORE_NAME,
+        "conversation_id": conversation_id,
+        "category": result["category"],
+        "category_label": CATEGORIES.get(result["category"], result["category"]),
+        "confidence": round(result["confidence"], 2),
+        "summary": result["summary"],
+        "detected_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "messages": [{"role": m["role"], "content": m["content"]} for m in transcript[-6:]],
+    }
+
+
 @app.post("/api/chat")
 def chat(request: ChatRequest) -> StreamingResponse:
     """Stream the answer as server-sent events, then persist and classify it."""
@@ -136,7 +153,9 @@ def chat(request: ChatRequest) -> StreamingResponse:
         reply = "".join(parts).strip()
         latency_ms = int((time.perf_counter() - started) * 1000)
         db.add_message(conversation_id, "assistant", reply, latency_ms=latency_ms)
-        result = llm.classify(history + [{"role": "assistant", "content": reply}])
+        transcript = history + [{"role": "assistant", "content": reply}]
+        result = llm.classify(transcript)
+        previous = db.conversation_category(conversation_id)
         db.set_classification(
             conversation_id, result["category"], result["confidence"], result["summary"]
         )
@@ -149,6 +168,8 @@ def chat(request: ChatRequest) -> StreamingResponse:
                 "title": result["summary"] or text,
             },
         )
+        if notify.should_alert(previous, result["category"]):
+            notify.alert(alert_payload(conversation_id, result, transcript))
 
     return StreamingResponse(
         stream(),

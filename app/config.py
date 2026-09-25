@@ -19,6 +19,11 @@ CATEGORIES = {
     "otro": "Otro",
 }
 
+NOTIFY_URL = os.getenv("NOTIFY_URL", "")
+NOTIFY_CATEGORIES = tuple(
+    name.strip() for name in os.getenv("NOTIFY_CATEGORIES", "reclamo").split(",") if name.strip()
+)
+
 TTS_ENABLED = os.getenv("TTS_ENABLED", "1") not in ("0", "false", "False")
 PIPER_VOICE = os.getenv("PIPER_VOICE", "es_ES-davefx-medium")
 PIPER_VOICE_URL = os.getenv(

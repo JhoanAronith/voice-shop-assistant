@@ -37,6 +37,8 @@ services:
       WHISPER_LANG: ${WHISPER_LANG:-es}
       DB_PATH: /data/assistant.db
       STORE_NAME: ${STORE_NAME:-TecnoStore}
+      NOTIFY_URL: ${NOTIFY_URL:-}
+      NOTIFY_CATEGORIES: ${NOTIFY_CATEGORIES:-reclamo}
     volumes:
       - ./data:/data
       - whisper:/models

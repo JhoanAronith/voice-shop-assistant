@@ -31,6 +31,26 @@ Desde los nodos HTTP Request de n8n, los otros servicios se alcanzan por su nomb
 Los webhooks quedan en `http://localhost:5678/webhook/...`. Solo para levantar n8n:
 `docker compose up -d n8n`.
 
+### Aviso de reclamos
+
+La app puede disparar un webhook cuando una conversación **pasa a** una categoría vigilada
+(`reclamo` por defecto). Se avisa una sola vez por conversación, no en cada mensaje. Con `NOTIFY_URL`
+vacío la función queda apagada.
+
+| Variable | Default | Uso |
+|---|---|---|
+| `NOTIFY_URL` | vacío | Webhook a llamar, p. ej. `http://n8n:5678/webhook/reclamo` |
+| `NOTIFY_CATEGORIES` | `reclamo` | Categorías que disparan el aviso, separadas por coma |
+
+El aviso se envía después del evento `done`, con timeout de 5 s, y si el webhook falla solo queda
+registrado en el log: la conversación del cliente nunca se interrumpe. El cuerpo es JSON:
+
+```json
+{"store": "TecnoStore", "conversation_id": 12, "category": "reclamo", "category_label": "Reclamo",
+ "confidence": 0.87, "summary": "Pedido sin llegar", "detected_at": "2026-09-24T19:40:00+00:00",
+ "messages": [{"role": "user", "content": "..."}]}
+```
+
 ## Pruebas
 
 ```bash

@@ -84,6 +84,14 @@ def add_message(
         conn.execute("UPDATE conversations SET updated_at = ? WHERE id = ?", (_now(), conversation_id))
 
 
+def conversation_category(conversation_id: int) -> str | None:
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT category FROM conversations WHERE id = ?", (conversation_id,)
+        ).fetchone()
+    return row["category"] if row else None
+
+
 def set_classification(conversation_id: int, category: str, confidence: float, summary: str) -> None:
     with connect() as conn:
         conn.execute(

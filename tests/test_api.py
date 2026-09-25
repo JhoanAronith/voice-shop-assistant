@@ -109,6 +109,61 @@ def test_stats_reflect_chat_activity(client, fake_llm):
     assert "user_texts" not in stats
 
 
+@pytest.fixture
+def complaints(monkeypatch):
+    """Classify every turn as a complaint and capture the webhook calls."""
+    monkeypatch.setattr(
+        api.llm,
+        "classify",
+        lambda history: {"category": "reclamo", "confidence": 0.87, "summary": "Pedido sin llegar"},
+    )
+    monkeypatch.setattr(api.notify, "NOTIFY_URL", "http://n8n:5678/webhook/reclamo")
+    monkeypatch.setattr(api.notify, "NOTIFY_CATEGORIES", ("reclamo",))
+    sent = []
+    monkeypatch.setattr(api.notify, "alert", lambda payload: sent.append(payload) or True)
+    return sent
+
+
+def test_complaint_triggers_the_webhook_once(client, fake_llm, complaints):
+    cid = send(client, "mi pedido nunca llegó, quiero un reclamo")[0][1]["conversation_id"]
+
+    [payload] = complaints
+    assert payload["conversation_id"] == cid
+    assert payload["category"] == "reclamo"
+    assert payload["category_label"] == "Reclamo"
+    assert payload["confidence"] == 0.87
+    assert payload["summary"] == "Pedido sin llegar"
+    assert payload["store"] == "TecnoStore"
+    assert payload["messages"][0] == {
+        "role": "user",
+        "content": "mi pedido nunca llegó, quiero un reclamo",
+    }
+    assert payload["messages"][-1]["role"] == "assistant"
+
+    send(client, "sigo esperando", conversation_id=cid)
+    assert len(complaints) == 1
+
+
+def test_other_categories_do_not_trigger_the_webhook(client, fake_llm, monkeypatch):
+    monkeypatch.setattr(api.notify, "NOTIFY_URL", "http://n8n:5678/webhook/reclamo")
+    sent = []
+    monkeypatch.setattr(api.notify, "alert", lambda payload: sent.append(payload) or True)
+
+    send(client, "precio del mouse")
+    assert sent == []
+
+
+def test_chat_works_without_a_webhook_configured(client, fake_llm, monkeypatch):
+    monkeypatch.setattr(api.notify, "NOTIFY_URL", "")
+    monkeypatch.setattr(
+        api.llm,
+        "classify",
+        lambda history: {"category": "reclamo", "confidence": 0.9, "summary": "Reclamo"},
+    )
+    events = send(client, "quiero un reclamo")
+    assert events[-1][1]["category"] == "reclamo"
+
+
 def test_report_rows_are_flat_for_spreadsheets(client, fake_llm):
     send(client, "precio del mouse", source="audio", audio_seconds=30)
     [row] = client.get("/api/report").json()
