@@ -214,8 +214,61 @@ function renderRecent(rows) {
     </table>`;
 }
 
+function renderIot(iot) {
+  const { location, light, motion } = iot.latest;
+  const ago = iot.last_seen ? new Date(iot.last_seen) : null;
+  el("iot-note").textContent = ago ? `última lectura ${ago.toLocaleTimeString()}` : "sin datos";
+
+  if (!ago) {
+    el("iot").innerHTML =
+      '<p class="empty">Abre el asistente en el teléfono y pulsa «Sensores» para recibir lecturas</p>';
+    return;
+  }
+
+  const tiles = [
+    {
+      k: "Ubicación",
+      v: location ? `${location.lat.toFixed(4)}, ${location.lon.toFixed(4)}` : "—",
+      u: location ? `±${Math.round(location.accuracy)} m` : "",
+    },
+    {
+      k: "Sucursal más cercana",
+      v: location?.branch ? location.branch.nombre : "—",
+      u: location?.branch ? `${location.branch.km} km` : "",
+    },
+    { k: "Luz ambiental", v: light ? Math.round(light.lux) : "—", u: light ? "lx" : "" },
+    { k: "Movimiento", v: motion ? motion.accel.toFixed(1) : "—", u: motion ? "m/s²" : "" },
+    { k: "Sacudidas", v: number(iot.shakes.total), u: iot.shakes.last ? "con audio activado" : "" },
+  ];
+  const kpis = tiles
+    .map(
+      (tile) =>
+        `<div class="kpi"><div class="k">${escape(tile.k)}</div>` +
+        `<div class="v">${escape(tile.v)}${tile.u ? `<span class="u">${escape(tile.u)}</span>` : ""}</div></div>`
+    )
+    .join("");
+
+  const lux = iot.series.filter((row) => row.lux !== null);
+  const max = Math.max(1, ...lux.map((row) => row.lux));
+  const spark = lux.length
+    ? `<p class="note">Luz ambiental, últimas ${lux.length} lecturas</p>` +
+      `<div class="spark">${lux
+        .map(
+          (row) =>
+            `<span style="height:${Math.max(4, Math.round((100 * row.lux) / max))}%" ` +
+            `title="${Math.round(row.lux)} lx"></span>`
+        )
+        .join("")}</div>`
+    : '<p class="note">Este navegador no entrega luz ambiental (Chrome: activa el flag «Generic Sensor Extra Classes»)</p>';
+
+  el("iot").innerHTML = `<div class="kpis">${kpis}</div>${spark}`;
+}
+
 async function load() {
-  const stats = await fetch(`/api/stats?days=${days}`).then((r) => r.json());
+  const [stats, iot] = await Promise.all([
+    fetch(`/api/stats?days=${days}`).then((r) => r.json()),
+    fetch("/api/iot").then((r) => r.json()),
+  ]);
 
   renderKpis(stats.totals);
 
@@ -247,6 +300,7 @@ async function load() {
   renderActivity(stats.daily);
   renderHours(stats.hourly);
   renderRecent(stats.recent);
+  renderIot(iot);
 
   el("activity-note").textContent = `últimos ${stats.days} días`;
 }

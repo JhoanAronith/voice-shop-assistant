@@ -4,11 +4,12 @@ import time
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import catalog
 import db
@@ -37,6 +38,21 @@ class ChatRequest(BaseModel):
     source: str = "text"
     language: str | None = None
     audio_seconds: float | None = None
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lon: float | None = Field(default=None, ge=-180, le=180)
+
+
+class Telemetry(BaseModel):
+    """One reading from the phone; every sensor is optional because browsers differ."""
+
+    device_id: str = Field(max_length=64)
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lon: float | None = Field(default=None, ge=-180, le=180)
+    accuracy: float | None = Field(default=None, ge=0)
+    lux: float | None = Field(default=None, ge=0)
+    accel: float | None = Field(default=None, ge=0)
+    gyro: float | None = Field(default=None, ge=0)
+    event: Literal["shake"] | None = None
 
 
 class SpeakRequest(BaseModel):
@@ -135,6 +151,14 @@ def chat(request: ChatRequest) -> StreamingResponse:
     )
     history = db.history(conversation_id)
 
+    nearby = ""
+    if request.lat is not None and request.lon is not None:
+        branch = catalog.nearest_branch(request.lat, request.lon)
+        nearby = (
+            "\nUBICACION DEL CLIENTE (GPS del teléfono): la sucursal más cercana es "
+            f"{branch['nombre']}, a {branch['km']} km.\n"
+        )
+
     def event(name: str, data: dict) -> str:
         return f"event: {name}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
@@ -143,7 +167,7 @@ def chat(request: ChatRequest) -> StreamingResponse:
         parts: list[str] = []
         started = time.perf_counter()
         try:
-            for chunk in llm.stream_reply(history):
+            for chunk in llm.stream_reply(history, nearby):
                 parts.append(chunk)
                 yield event("token", {"text": chunk})
         except Exception as exc:
@@ -176,6 +200,21 @@ def chat(request: ChatRequest) -> StreamingResponse:
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.post("/api/iot/telemetry", status_code=204)
+def ingest_telemetry(reading: Telemetry) -> None:
+    """Sensor readings pushed by the phone while the assistant page is open."""
+    db.add_telemetry(reading.device_id, reading.model_dump(exclude={"device_id"}))
+
+
+@app.get("/api/iot")
+def read_iot() -> dict:
+    overview = db.iot_overview()
+    location = overview["latest"]["location"]
+    if location:
+        location["branch"] = catalog.nearest_branch(location["lat"], location["lon"])
+    return overview
 
 
 @app.get("/api/stats")

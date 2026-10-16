@@ -166,6 +166,10 @@ header {
 }
 header h1 { margin: 0; font-size: 1.05rem; letter-spacing: -.01em; }
 .subtitle { color: var(--muted); font-size: .84rem; }
+.sensor-status { margin-left: auto; color: var(--muted); font-size: .8rem; }
+.sensors { padding: .35rem .65rem; font-size: .82rem; }
+.sensor-status:empty + .sensors { margin-left: auto; }
+.sensors.on { border-color: var(--accent); color: var(--accent); }
 
 #thread {
   overflow-y: auto;

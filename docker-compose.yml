@@ -69,6 +69,16 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # HTTPS tunnel to the assistant: phone sensors only work in a secure context.
+  tunnel:
+    image: ngrok/ngrok:latest
+    command: ["http", "app:8000", "--url=${NGROK_URL}", "--log=stdout", "--log-format=logfmt"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    depends_on:
+      - app
+    restart: unless-stopped
+
   tests:
     build: .
     profiles: ["test"]

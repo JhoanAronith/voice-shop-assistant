@@ -8,14 +8,15 @@ from catalog import as_context
 from config import CATEGORIES, LLM_MODEL, OLLAMA_URL, STORE_NAME
 
 
-def system_prompt(query: str = "") -> str:
+def system_prompt(query: str = "", nearby: str = "") -> str:
     """Instructions after the data: the rules stay close to the answer."""
     return f"""Eres el asistente de compras de {STORE_NAME}, una tienda de productos tecnológicos.
 
 {as_context(query)}
-
+{nearby}
 REGLAS:
 - Responde en español, en 2 a 4 frases, con datos concretos del contexto (SKU, precio en S/, stock, garantía).
+- Si se indica la sucursal más cercana al cliente, úsala cuando pregunte por tiendas, retiro o ubicación.
 - Medios de pago, envíos, promociones y sucursales se responden citando las secciones de arriba tal como están.
 - Si el producto no está en el catálogo, dilo y ofrece la alternativa más cercana que sí esté.
 - Si el stock es 0, indícalo y propón reposición o un sustituto.
@@ -102,10 +103,10 @@ def classify(history: list[dict]) -> dict:
         return {"category": category, "confidence": confidence, "summary": user_text[:120]}
 
 
-def stream_reply(history: list[dict]):
+def stream_reply(history: list[dict], nearby: str = ""):
     """Yield the answer token by token so the UI can render it as it arrives."""
     last_user = next((m["content"] for m in reversed(history) if m["role"] == "user"), "")
-    messages = [{"role": "system", "content": system_prompt(last_user)}]
+    messages = [{"role": "system", "content": system_prompt(last_user, nearby)}]
     messages += [{"role": m["role"], "content": m["content"]} for m in history[-8:]]
     payload = {
         "model": LLM_MODEL,

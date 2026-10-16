@@ -29,6 +29,20 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at      TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS telemetry (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id  TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    lat        REAL,
+    lon        REAL,
+    accuracy   REAL,
+    lux        REAL,
+    accel      REAL,
+    gyro       REAL,
+    event      TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_telemetry_device ON telemetry(device_id, id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_session ON conversations(session_id);
 """
@@ -139,6 +153,52 @@ def prune_empty() -> None:
 def delete_conversation(conversation_id: int) -> None:
     with connect() as conn:
         conn.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
+
+
+def add_telemetry(device_id: str, reading: dict) -> None:
+    keys = ("lat", "lon", "accuracy", "lux", "accel", "gyro", "event")
+    with connect() as conn:
+        conn.execute(
+            f"""INSERT INTO telemetry (device_id, created_at, {", ".join(keys)})
+                VALUES (?, ?, {", ".join("?" for _ in keys)})""",
+            (device_id, _now(), *(reading.get(k) for k in keys)),
+        )
+        # Keep the table small: this is a live feed, not an archive.
+        conn.execute(
+            "DELETE FROM telemetry WHERE device_id = ? AND id <= "
+            "(SELECT id FROM telemetry WHERE device_id = ? ORDER BY id DESC LIMIT 1 OFFSET 2000)",
+            (device_id, device_id),
+        )
+
+
+def iot_overview(limit: int = 30) -> dict:
+    """Latest known value of each sensor, the recent series and event counts for the panel."""
+    with connect() as conn:
+        latest = {}
+        for name, column in (("location", "lat"), ("light", "lux"), ("motion", "accel")):
+            row = conn.execute(
+                "SELECT created_at, lat, lon, accuracy, lux, accel, gyro FROM telemetry "
+                f"WHERE {column} IS NOT NULL ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            latest[name] = dict(row) if row else None
+        series = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT created_at, lux, accel, gyro FROM telemetry "
+                "WHERE lux IS NOT NULL OR accel IS NOT NULL ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        ][::-1]
+        shakes = conn.execute(
+            "SELECT COUNT(*) AS total, MAX(created_at) AS last FROM telemetry WHERE event = 'shake'"
+        ).fetchone()
+        last = conn.execute("SELECT MAX(created_at) AS last FROM telemetry").fetchone()
+    return {
+        "latest": latest,
+        "series": series,
+        "shakes": dict(shakes),
+        "last_seen": last["last"],
+    }
 
 
 NON_EMPTY = "EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id)"

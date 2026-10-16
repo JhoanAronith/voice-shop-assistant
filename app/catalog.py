@@ -1,4 +1,5 @@
 """Store data used as grounding context for the assistant."""
+from math import asin, cos, radians, sin, sqrt
 
 # sku, nombre, categoria, marca, precio (S/), stock, garantia (meses), rating, terminos
 PRODUCTS = [
@@ -51,6 +52,25 @@ PRODUCTS = [
 FIELDS = ("sku", "nombre", "categoria", "marca", "precio", "stock", "garantia", "rating", "terminos")
 
 CATALOG = [dict(zip(FIELDS, product, strict=True)) for product in PRODUCTS]
+
+# Coordinates of the branches listed in STORE["sucursales"], used to answer "the nearest one".
+BRANCHES = (
+    {"nombre": "Lima Centro", "lat": -12.0464, "lon": -77.0428},
+    {"nombre": "San Isidro", "lat": -12.0977, "lon": -77.0365},
+    {"nombre": "Arequipa", "lat": -16.3989, "lon": -71.5350},
+)
+
+
+def nearest_branch(lat: float, lon: float) -> dict:
+    """Closest branch to a point, with the great-circle distance in km."""
+    def km(branch: dict) -> float:
+        p1, p2 = radians(lat), radians(branch["lat"])
+        a = sin((p2 - p1) / 2) ** 2 + cos(p1) * cos(p2) * sin(radians(branch["lon"] - lon) / 2) ** 2
+        return 6371 * 2 * asin(sqrt(a))
+
+    best = min(BRANCHES, key=km)
+    return {"nombre": best["nombre"], "km": round(km(best), 1)}
+
 
 STORE = {
     "sucursales": [

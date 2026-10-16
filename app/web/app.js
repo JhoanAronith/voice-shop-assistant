@@ -140,6 +140,8 @@ function addTyping() {
   return bubble;
 }
 
+window.toast = toast;
+
 function toast(text) {
   const node = document.createElement("div");
   node.className = "toast";
@@ -284,6 +286,7 @@ async function send(text, source = "text", language = null, seconds = null) {
         source,
         language,
         audio_seconds: seconds,
+        ...(window.iot?.position() ?? {}),
       }),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);

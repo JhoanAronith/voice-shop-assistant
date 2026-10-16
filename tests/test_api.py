@@ -16,7 +16,7 @@ def parse_sse(body: str) -> list[tuple[str, dict]]:
 
 @pytest.fixture
 def fake_llm(monkeypatch):
-    monkeypatch.setattr(api.llm, "stream_reply", lambda history: iter(["El mouse ", "cuesta S/ 149."]))
+    monkeypatch.setattr(api.llm, "stream_reply", lambda history, nearby="": iter(["El mouse ", "cuesta S/ 149."]))
     monkeypatch.setattr(
         api.llm,
         "classify",
@@ -76,7 +76,7 @@ def test_chat_rejects_empty_message(client):
 
 
 def test_chat_reports_llm_failure_as_event(client, monkeypatch):
-    def broken(history):
+    def broken(history, nearby=""):
         raise RuntimeError("ollama caído")
         yield  # pragma: no cover
 
@@ -209,3 +209,39 @@ def test_speak(client, monkeypatch):
 
     monkeypatch.setattr(api.tts, "TTS_ENABLED", False)
     assert client.post("/api/speak", json={"text": "hola"}).status_code == 503
+
+
+def test_telemetry_is_stored_and_reported(client):
+    reading = {"device_id": "a26", "lat": -12.0977, "lon": -77.0365, "accuracy": 12, "lux": 120.5, "accel": 1.2}
+    assert client.post("/api/iot/telemetry", json=reading).status_code == 204
+    client.post("/api/iot/telemetry", json={"device_id": "a26", "accel": 22, "event": "shake"})
+
+    iot = client.get("/api/iot").json()
+    assert iot["latest"]["light"]["lux"] == 120.5
+    assert iot["latest"]["location"]["branch"]["nombre"] == "San Isidro"
+    assert iot["shakes"]["total"] == 1
+
+
+def test_telemetry_rejects_bad_coordinates(client):
+    assert client.post("/api/iot/telemetry", json={"device_id": "a26", "lat": 200, "lon": 0}).status_code == 422
+
+
+def test_iot_overview_is_empty_without_readings(client):
+    iot = client.get("/api/iot").json()
+    assert iot["last_seen"] is None
+    assert iot["latest"]["location"] is None
+
+
+def test_chat_passes_nearest_branch_to_the_model(client, monkeypatch):
+    import api
+
+    seen = {}
+
+    def fake_stream(history, nearby=""):
+        seen["nearby"] = nearby
+        yield "ok"
+
+    monkeypatch.setattr(api.llm, "stream_reply", fake_stream)
+    monkeypatch.setattr(api.llm, "classify", lambda h: {"category": "otro", "confidence": 0.5, "summary": ""})
+    client.post("/api/chat", json={"message": "¿tienda cerca?", "lat": -16.4, "lon": -71.53})
+    assert "Arequipa" in seen["nearby"]
