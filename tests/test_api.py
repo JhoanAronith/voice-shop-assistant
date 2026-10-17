@@ -212,12 +212,12 @@ def test_speak(client, monkeypatch):
 
 
 def test_telemetry_is_stored_and_reported(client):
-    reading = {"device_id": "a26", "lat": -12.0977, "lon": -77.0365, "accuracy": 12, "lux": 120.5, "accel": 1.2}
+    reading = {"device_id": "a26", "lat": -12.0977, "lon": -77.0365, "accuracy": 12, "accel": 1.2}
     assert client.post("/api/iot/telemetry", json=reading).status_code == 204
     client.post("/api/iot/telemetry", json={"device_id": "a26", "accel": 22, "event": "shake"})
 
     iot = client.get("/api/iot").json()
-    assert iot["latest"]["light"]["lux"] == 120.5
+    assert iot["latest"]["motion"]["accel"] == 22
     assert iot["latest"]["location"]["branch"]["nombre"] == "San Isidro"
     assert iot["shakes"]["total"] == 1
 
@@ -245,3 +245,15 @@ def test_chat_passes_nearest_branch_to_the_model(client, monkeypatch):
     monkeypatch.setattr(api.llm, "classify", lambda h: {"category": "otro", "confidence": 0.5, "summary": ""})
     client.post("/api/chat", json={"message": "¿tienda cerca?", "lat": -16.4, "lon": -71.53})
     assert "Arequipa" in seen["nearby"]
+
+
+def test_web_files_are_revalidated_on_every_load(client):
+    for path in ("/", "/app.js", "/sensors.js", "/report"):
+        assert client.get(path).headers["cache-control"] == "no-cache"
+
+
+def test_scanned_code_resolves_to_a_product(client):
+    ean = client.get("/api/codes").json()[0]["ean"]
+    assert client.get("/api/product", params={"code": ean}).json()["sku"] == "LT-001"
+    assert client.get("/api/product", params={"code": "LT-001"}).status_code == 200
+    assert client.get("/api/product", params={"code": "nada"}).status_code == 404

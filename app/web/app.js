@@ -27,7 +27,14 @@ el("theme-toggle").onclick = () => {
   localStorage.setItem("theme", next);
 };
 
-el("menu").onclick = () => el("sidebar").classList.toggle("open");
+const setMenu = (open) => {
+  el("sidebar").classList.toggle("open", open);
+  el("scrim").classList.toggle("open", open);
+};
+el("menu").onclick = () => setMenu(!el("sidebar").classList.contains("open"));
+el("close-menu").onclick = () => setMenu(false);
+el("scrim").onclick = () => setMenu(false);
+document.addEventListener("keydown", (event) => event.key === "Escape" && setMenu(false));
 
 const ENTITIES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 const escape = (text) => text.replace(/[&<>"']/g, (c) => ENTITIES[c]);
@@ -229,7 +236,7 @@ async function openConversation(id) {
     );
     if (message.role === "assistant") addSpeakButton(bubble, message.content);
   });
-  el("sidebar").classList.remove("open");
+  setMenu(false);
   loadConversations();
 }
 
@@ -242,7 +249,10 @@ function resetChat() {
   input.focus();
 }
 
-el("new-chat").onclick = resetChat;
+el("new-chat").onclick = () => {
+  resetChat();
+  setMenu(false);
+};
 
 function setBusy(value) {
   busy = value;

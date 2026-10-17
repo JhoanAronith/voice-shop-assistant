@@ -51,6 +51,47 @@ registrado en el log: la conversación del cliente nunca se interrumpe. El cuerp
  "messages": [{"role": "user", "content": "..."}]}
 ```
 
+## Lectura de documentos con cámara
+
+El botón de cámara junto al cuadro de mensaje abre un lector de documentos. En el celular,
+«Tomar foto» solicita una captura con la cámara trasera cuando el navegador lo permite;
+«Elegir imagen» permite seleccionar una foto existente, también desde el PC.
+
+1. Toma o selecciona una foto con texto. La lectura empieza sola.
+2. Ajusta el recuadro: arrastra sus esquinas o bordes, muévelo desde dentro o dibuja uno nuevo
+   en un espacio vacío. Cada cambio vuelve a leer la zona automáticamente; «Volver a leer» y los
+   controles desplegables también están disponibles.
+3. Las líneas reconocidas se resaltan sobre la foto. Toca una para incluirla o quitarla del texto
+   (las de baja confianza, como dibujos o bordes, empiezan sin seleccionar).
+4. Revisa y corrige el texto detectado. «Usar en el chat» lo añade al borrador sin enviarlo.
+5. Agrega tu consulta y pulsa Enviar cuando estés listo.
+
+El OCR usa Tesseract.js 6.0.1 en el navegador, en español e inglés. La biblioteca y el trabajador
+se cargan al abrir el lector y se reutilizan en cada lectura, por lo que las relecturas tardan
+unos segundos. Antes de leer, la zona se recorta de la imagen original, se corrige la
+iluminación despareja y se ajusta el contraste; un recuadro se lee como un solo bloque y la
+imagen completa con análisis de la página. La primera vez requiere internet para descargar la
+biblioteca y los datos del idioma.
+La foto no se sube al servidor ni se guarda en SQLite; solo el texto que envíes al chat se
+guarda como mensaje normal. El asistente conserva su rol de compras y el modelo actual.
+
+Acepta JPG, PNG y WebP de hasta 20 MB; el lado mayor de la zona se lleva a entre 1400 y 2000
+píxeles. No incluye PDF, lectura continua de video, recorte automático ni reconocimiento fiable
+de escritura a mano. Se recomienda abrir la app por HTTPS desde el celular. Cancelar cierra el
+lector y libera su trabajador OCR.
+
+## Escáner de códigos
+
+El botón de código QR junto al cuadro de mensaje abre la cámara trasera y lee códigos QR y de
+barras (EAN-13, EAN-8, UPC, Code 128, Code 39). Al reconocer un producto, el asistente responde
+con su precio, stock y garantía. Un QR puede contener el SKU (p. ej. `LT-001`) o una URL que lo
+incluya; los códigos de barras son el EAN-13 de cada producto.
+
+En `/codes` hay una hoja con el QR y el EAN-13 de todo el catálogo, para imprimirla o mostrarla en
+pantalla y probar el escáner. Chrome en Android lee los códigos de forma nativa; en otros
+navegadores se descarga un lector en JavaScript. La cámara requiere HTTPS, y las imágenes no se
+envían ni se guardan: solo se consulta el código leído en `/api/product`.
+
 ## Pruebas
 
 ```bash

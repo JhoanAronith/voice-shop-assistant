@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -49,7 +49,6 @@ class Telemetry(BaseModel):
     lat: float | None = Field(default=None, ge=-90, le=90)
     lon: float | None = Field(default=None, ge=-180, le=180)
     accuracy: float | None = Field(default=None, ge=0)
-    lux: float | None = Field(default=None, ge=0)
     accel: float | None = Field(default=None, ge=0)
     gyro: float | None = Field(default=None, ge=0)
     event: Literal["shake"] | None = None
@@ -57,6 +56,15 @@ class Telemetry(BaseModel):
 
 class SpeakRequest(BaseModel):
     text: str
+
+
+@app.middleware("http")
+async def revalidate_web_files(request: Request, call_next):
+    """Pages and scripts ship together; without this a phone can run an old script on new HTML."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.get("/api/config")
@@ -217,6 +225,25 @@ def read_iot() -> dict:
     return overview
 
 
+def product_card(product: dict) -> dict:
+    return {key: product[key] for key in ("sku", "nombre", "categoria", "marca", "precio", "stock", "garantia", "ean")}
+
+
+@app.get("/api/product")
+def read_product(code: str) -> dict:
+    """Resolve a scanned QR or barcode to a catalog product."""
+    product = catalog.find_by_code(code)
+    if not product:
+        raise HTTPException(status_code=404, detail="Código no reconocido")
+    return product_card(product)
+
+
+@app.get("/api/codes")
+def read_codes() -> list[dict]:
+    """Every product with its printable codes, for the test sheet."""
+    return [product_card(p) for p in catalog.CATALOG]
+
+
 @app.get("/api/stats")
 def read_stats(days: int = 14) -> dict:
     raw = db.stats(days=min(max(days, 1), 90))
@@ -282,6 +309,11 @@ def read_report(days: int = 30) -> list[dict]:
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(WEB_DIR / "index.html")
+
+
+@app.get("/codes")
+def codes() -> FileResponse:
+    return FileResponse(WEB_DIR / "codes.html")
 
 
 @app.get("/report")

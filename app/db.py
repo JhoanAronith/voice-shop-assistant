@@ -36,7 +36,6 @@ CREATE TABLE IF NOT EXISTS telemetry (
     lat        REAL,
     lon        REAL,
     accuracy   REAL,
-    lux        REAL,
     accel      REAL,
     gyro       REAL,
     event      TEXT
@@ -156,7 +155,7 @@ def delete_conversation(conversation_id: int) -> None:
 
 
 def add_telemetry(device_id: str, reading: dict) -> None:
-    keys = ("lat", "lon", "accuracy", "lux", "accel", "gyro", "event")
+    keys = ("lat", "lon", "accuracy", "accel", "gyro", "event")
     with connect() as conn:
         conn.execute(
             f"""INSERT INTO telemetry (device_id, created_at, {", ".join(keys)})
@@ -175,17 +174,17 @@ def iot_overview(limit: int = 30) -> dict:
     """Latest known value of each sensor, the recent series and event counts for the panel."""
     with connect() as conn:
         latest = {}
-        for name, column in (("location", "lat"), ("light", "lux"), ("motion", "accel")):
+        for name, column in (("location", "lat"), ("motion", "accel")):
             row = conn.execute(
-                "SELECT created_at, lat, lon, accuracy, lux, accel, gyro FROM telemetry "
+                "SELECT created_at, lat, lon, accuracy, accel, gyro FROM telemetry "
                 f"WHERE {column} IS NOT NULL ORDER BY id DESC LIMIT 1"
             ).fetchone()
             latest[name] = dict(row) if row else None
         series = [
             dict(r)
             for r in conn.execute(
-                "SELECT created_at, lux, accel, gyro FROM telemetry "
-                "WHERE lux IS NOT NULL OR accel IS NOT NULL ORDER BY id DESC LIMIT ?",
+                "SELECT created_at, accel, gyro FROM telemetry "
+                "WHERE accel IS NOT NULL ORDER BY id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         ][::-1]

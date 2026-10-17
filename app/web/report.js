@@ -215,13 +215,13 @@ function renderRecent(rows) {
 }
 
 function renderIot(iot) {
-  const { location, light, motion } = iot.latest;
+  const { location, motion } = iot.latest;
   const ago = iot.last_seen ? new Date(iot.last_seen) : null;
   el("iot-note").textContent = ago ? `última lectura ${ago.toLocaleTimeString()}` : "sin datos";
 
   if (!ago) {
     el("iot").innerHTML =
-      '<p class="empty">Abre el asistente en el teléfono y pulsa «Sensores» para recibir lecturas</p>';
+      '<p class="empty">Sin lecturas todavía</p>';
     return;
   }
 
@@ -236,9 +236,8 @@ function renderIot(iot) {
       v: location?.branch ? location.branch.nombre : "—",
       u: location?.branch ? `${location.branch.km} km` : "",
     },
-    { k: "Luz ambiental", v: light ? Math.round(light.lux) : "—", u: light ? "lx" : "" },
     { k: "Movimiento", v: motion ? motion.accel.toFixed(1) : "—", u: motion ? "m/s²" : "" },
-    { k: "Sacudidas", v: number(iot.shakes.total), u: iot.shakes.last ? "con audio activado" : "" },
+    { k: "Sacudidas", v: number(iot.shakes.total) },
   ];
   const kpis = tiles
     .map(
@@ -248,18 +247,18 @@ function renderIot(iot) {
     )
     .join("");
 
-  const lux = iot.series.filter((row) => row.lux !== null);
-  const max = Math.max(1, ...lux.map((row) => row.lux));
-  const spark = lux.length
-    ? `<p class="note">Luz ambiental, últimas ${lux.length} lecturas</p>` +
-      `<div class="spark">${lux
+  const moves = iot.series.filter((row) => row.accel !== null);
+  const max = Math.max(1, ...moves.map((row) => row.accel));
+  const spark = moves.length
+    ? `<p class="note">Movimiento, últimas ${moves.length} lecturas</p>` +
+      `<div class="spark">${moves
         .map(
           (row) =>
-            `<span style="height:${Math.max(4, Math.round((100 * row.lux) / max))}%" ` +
-            `title="${Math.round(row.lux)} lx"></span>`
+            `<span style="height:${Math.max(4, Math.round((100 * row.accel) / max))}%" ` +
+            `title="${row.accel.toFixed(1)} m/s²"></span>`
         )
         .join("")}</div>`
-    : '<p class="note">Este navegador no entrega luz ambiental (Chrome: activa el flag «Generic Sensor Extra Classes»)</p>';
+    : "";
 
   el("iot").innerHTML = `<div class="kpis">${kpis}</div>${spark}`;
 }

@@ -1,4 +1,5 @@
 """Store data used as grounding context for the assistant."""
+import re
 from math import asin, cos, radians, sin, sqrt
 
 # sku, nombre, categoria, marca, precio (S/), stock, garantia (meses), rating, terminos
@@ -52,6 +53,31 @@ PRODUCTS = [
 FIELDS = ("sku", "nombre", "categoria", "marca", "precio", "stock", "garantia", "rating", "terminos")
 
 CATALOG = [dict(zip(FIELDS, product, strict=True)) for product in PRODUCTS]
+
+def _ean13(number: int) -> str:
+    """A valid EAN-13 (Peru prefix 775) numbered after the product's position in the catalog."""
+    body = f"775{number:09d}"
+    check = (10 - sum(int(d) * (3 if i % 2 else 1) for i, d in enumerate(body)) % 10) % 10
+    return body + str(check)
+
+
+for _position, _product in enumerate(CATALOG, start=1):
+    _product["ean"] = _ean13(_position)
+
+_SKU_PATTERN = re.compile(r"[A-Z]{2}-\d{3}")
+
+
+def find_by_code(code: str) -> dict | None:
+    """Product behind a scanned QR or barcode: its EAN-13, its SKU, or any text that contains the SKU."""
+    value = (code or "").strip()
+    for product in CATALOG:
+        if value == product["ean"]:
+            return product
+    match = _SKU_PATTERN.search(value.upper())
+    if match:
+        return next((p for p in CATALOG if p["sku"] == match.group()), None)
+    return None
+
 
 # Coordinates of the branches listed in STORE["sucursales"], used to answer "the nearest one".
 BRANCHES = (

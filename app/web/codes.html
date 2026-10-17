@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Códigos de producto</title>
+  <style>
+    body { margin: 0; padding: 1.5rem; background: #fff; color: #15181f; font-family: system-ui, sans-serif; }
+    h1 { margin: 0 0 .3rem; font-size: 1.2rem; }
+    p.note { margin: 0 0 1.2rem; color: #6b7280; font-size: .9rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1rem; }
+    .tag { border: 1px solid #d5d8de; border-radius: 10px; padding: .8rem; text-align: center; break-inside: avoid; background: #fff; }
+    .tag b { display: block; font-size: .85rem; margin-bottom: .5rem; min-height: 2.4em; }
+    .tag svg { max-width: 100%; height: auto; }
+    .qr { width: 130px; margin: 0 auto .4rem; }
+    .qr svg { width: 100%; height: auto; display: block; }
+    small { color: #6b7280; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <h1>Códigos de producto</h1>
+  <p class="note">Cada producto tiene un QR (con su SKU) y un código de barras EAN-13. Imprime la hoja o muéstrala en pantalla y escanéala desde el asistente.</p>
+  <div id="grid" class="grid"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+  <script>
+    fetch("/api/codes").then((r) => r.json()).then((products) => {
+      const grid = document.getElementById("grid");
+      for (const product of products) {
+        const tag = document.createElement("div");
+        tag.className = "tag";
+
+        const name = document.createElement("b");
+        name.textContent = product.nombre;
+
+        const qr = qrcode(0, "M");
+        qr.addData(product.sku);
+        qr.make();
+        const qrBox = document.createElement("div");
+        qrBox.className = "qr";
+        qrBox.innerHTML = qr.createSvgTag({ scalable: true, margin: 2 });
+
+        const bars = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        JsBarcode(bars, product.ean, { format: "EAN13", width: 3, height: 90, fontSize: 20, margin: 24 });
+
+        const sku = document.createElement("small");
+        sku.textContent = product.sku;
+
+        tag.append(name, qrBox, bars, sku);
+        grid.append(tag);
+      }
+    });
+  </script>
+</body>
+</html>
